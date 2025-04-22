@@ -1,5 +1,5 @@
-import React, { useRef, useState } from 'react';
-import { Canvas, useFrame, useLoader } from '@react-three/fiber';
+import React, { useEffect, useRef, useState } from 'react';
+import { Canvas, useLoader } from '@react-three/fiber';
 import { OrbitControls, Html } from '@react-three/drei';
 import { TextureLoader } from 'three';
 
@@ -10,16 +10,12 @@ function Sphere() {
   return (
     <mesh ref={meshRef}>
       <sphereGeometry args={[2, 64, 64]} />
-      <meshPhongMaterial 
-        map={texture}
-        shininess={5}
-        specular="#ffffff"
-      />
+      <meshPhongMaterial map={texture} shininess={5} specular="#ffffff" />
     </mesh>
   );
 }
 
-function Marker({ lat, lng, label, onClick }) {
+function Marker({ lat, lng, label, description, onClick }) {
   const [hovered, setHovered] = useState(false);
   const phi = (90 - lat) * (Math.PI / 180);
   const theta = (360 - lng) * (Math.PI / 180);
@@ -32,7 +28,7 @@ function Marker({ lat, lng, label, onClick }) {
   return (
     <mesh 
       position={[x, y, z]}
-      onClick={() => onClick(label)}
+      onClick={() => onClick({ label, description })}
       onPointerOver={() => setHovered(true)}
       onPointerOut={() => setHovered(false)}
     >
@@ -49,11 +45,14 @@ function Marker({ lat, lng, label, onClick }) {
 
 export default function Globe() {
   const [selectedArtifact, setSelectedArtifact] = useState(null);
+  const [markers, setMarkers] = useState([]);
 
-  const markers = [
-    { lat: 44.4268, lng: 26.1025, label: 'București' },
-    { lat: 51.5074, lng: -0.1278, label: 'Londra' },
-  ];
+  useEffect(() => {
+    fetch('http://localhost:3001/api/artifacts')
+      .then((res) => res.json())
+      .then((data) => setMarkers(data))
+      .catch((err) => console.error("Eroare la fetch:", err));
+  }, []);
 
   return (
     <div style={{ 
@@ -64,39 +63,30 @@ export default function Globe() {
       left: 0,
       background: '#000'
     }}>
-      <Canvas
-        camera={{ position: [0, 0, 5], fov: 60 }}
-        gl={{ antialias: true }}
-      >
+      <Canvas camera={{ position: [0, 0, 5], fov: 60 }} gl={{ antialias: true }}>
         <ambientLight intensity={1.2} />
         <pointLight position={[10, 10, 10]} intensity={1.5} />
         <pointLight position={[-10, -10, -10]} intensity={0.5} />
         
         <Sphere />
+        <OrbitControls enableZoom minDistance={3} maxDistance={8} enablePan={false} />
         
-        <OrbitControls 
-          enableZoom={true}
-          minDistance={3}
-          maxDistance={8}
-          enablePan={false}
-        />
-        
-        {markers.map((marker, index) => (
+        {markers.map((marker) => (
           <Marker
-            key={index}
-            {...marker}
-            onClick={(label) => setSelectedArtifact(label)}
+            key={marker.id}
+            lat={parseFloat(marker.latitude)}
+            lng={parseFloat(marker.longitude)}
+            label={marker.name}
+            description={marker.description}
+            onClick={setSelectedArtifact}
           />
         ))}
       </Canvas>
 
       {selectedArtifact && (
-        <div 
-          className="artifact-popup"
-          onClick={() => setSelectedArtifact(null)}
-        >
-          <h3>{selectedArtifact}</h3>
-          <p>Detalii despre artefact...</p>
+        <div className="artifact-popup" onClick={() => setSelectedArtifact(null)}>
+          <h3>{selectedArtifact.label}</h3>
+          <p>{selectedArtifact.description}</p>
         </div>
       )}
     </div>
