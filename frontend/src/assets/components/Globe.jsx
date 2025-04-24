@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Canvas, useLoader } from '@react-three/fiber';
 import { OrbitControls, Html } from '@react-three/drei';
 import { TextureLoader } from 'three';
+import { useAuth } from '../../AuthContext';
 
 function Sphere() {
   const meshRef = useRef();
@@ -46,6 +47,7 @@ function Marker({ lat, lng, label, description, onClick }) {
 export default function Globe() {
   const [selectedArtifact, setSelectedArtifact] = useState(null);
   const [markers, setMarkers] = useState([]);
+  const { user } = useAuth();
 
   useEffect(() => {
     fetch('http://localhost:3001/api/artifacts')
@@ -54,41 +56,64 @@ export default function Globe() {
       .catch((err) => console.error("Eroare la fetch:", err));
   }, []);
 
-  return (
-    <div style={{ 
-      height: '100vh', 
-      width: '100vw', 
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      background: '#000'
-    }}>
-      <Canvas camera={{ position: [0, 0, 5], fov: 60 }} gl={{ antialias: true }}>
-        <ambientLight intensity={1.2} />
-        <pointLight position={[10, 10, 10]} intensity={1.5} />
-        <pointLight position={[-10, -10, -10]} intensity={0.5} />
-        
-        <Sphere />
-        <OrbitControls enableZoom minDistance={3} maxDistance={8} enablePan={false} />
-        
-        {markers.map((marker) => (
-          <Marker
-            key={marker.id}
-            lat={parseFloat(marker.latitude)}
-            lng={parseFloat(marker.longitude)}
-            label={marker.name}
-            description={marker.description}
-            onClick={setSelectedArtifact}
-          />
-        ))}
-      </Canvas>
+ 
 
-      {selectedArtifact && (
-        <div className="artifact-popup" onClick={() => setSelectedArtifact(null)}>
-          <h3>{selectedArtifact.label}</h3>
-          <p>{selectedArtifact.description}</p>
-        </div>
-      )}
-    </div>
-  );
+const handleAddArtifact = async (newArtifact) => {
+  if (!user) return;
+  
+  try {
+    const response = await fetch('http://localhost:3001/api/artifacts', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify(newArtifact)
+    });
+    // Refetch artifacts after adding
+  } catch (err) {
+    console.error('Error adding artifact:', err);
+  }
+};
+
+return (
+  <div style={{ 
+    height: '100vh', 
+    width: '100vw', 
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    background: '#000'
+  }}>
+    <Canvas camera={{ position: [0, 0, 5], fov: 60 }} gl={{ antialias: true }}>
+      <ambientLight intensity={1.2} />
+      <pointLight position={[10, 10, 10]} intensity={1.5} />
+      <pointLight position={[-10, -10, -10]} intensity={0.5} />
+      
+      <Sphere />
+      <OrbitControls enableZoom minDistance={3} maxDistance={8} enablePan={false} />
+      
+      {markers.map((marker) => (
+        <Marker
+          key={marker.id}
+          lat={parseFloat(marker.latitude)}
+          lng={parseFloat(marker.longitude)}
+          label={marker.name}
+          description={marker.description}
+          onClick={setSelectedArtifact}
+        />
+      ))}
+    </Canvas>
+
+    {selectedArtifact && (
+      <div className="artifact-popup" onClick={() => setSelectedArtifact(null)}>
+        <h3>{selectedArtifact.label}</h3>
+        <p>{selectedArtifact.description}</p>
+      </div>
+    )}
+    {user?.role === 'researcher' && (
+      <AddArtifactForm onSubmit={handleAddArtifact} />
+    )}
+  </div>
+  );  
 }
