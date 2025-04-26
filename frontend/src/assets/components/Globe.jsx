@@ -44,7 +44,7 @@ function Marker({ lat, lng, label, description, onClick }) {
   );
 }
 
-export default function Globe() {
+export default function Globe({refreshKey}) {
   const [selectedArtifact, setSelectedArtifact] = useState(null);
   const [markers, setMarkers] = useState([]);
   const { user } = useAuth();
@@ -54,27 +54,7 @@ export default function Globe() {
       .then((res) => res.json())
       .then((data) => setMarkers(data))
       .catch((err) => console.error("Eroare la fetch:", err));
-  }, []);
-
- 
-
-const handleAddArtifact = async (newArtifact) => {
-  if (!user) return;
-  
-  try {
-    const response = await fetch('http://localhost:3001/api/artifacts', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      },
-      body: JSON.stringify(newArtifact)
-    });
-    // Refetch artifacts after adding
-  } catch (err) {
-    console.error('Error adding artifact:', err);
-  }
-};
+  }, [refreshKey]);
 
 return (
   <div style={{ 
@@ -104,16 +84,13 @@ return (
         />
       ))}
     </Canvas>
-
+    
     {selectedArtifact && (
-      <div className="artifact-popup" onClick={() => setSelectedArtifact(null)}>
-        <h3>{selectedArtifact.label}</h3>
-        <p>{selectedArtifact.description}</p>
-      </div>
-    )}
-    {/* {user?.role === 'researcher' && (
-      <AddArtifactForm onSubmit={handleAddArtifact} />
-    )} */}
+        <div className="artifact-popup" onClick={() => setSelectedArtifact(null)}>
+          <h3>{selectedArtifact.label}</h3>
+          <p>{selectedArtifact.description}</p>
+        </div>
+      )}
   </div>
   );  
 }

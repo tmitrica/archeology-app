@@ -6,7 +6,7 @@ const Register = ({ onClose, onSwitchToLogin }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { login } = useAuth(); // 💥 adăugat!
+  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,7 +20,7 @@ const Register = ({ onClose, onSwitchToLogin }) => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Registration failed');
 
-      login(data.user, data.token); // Acum merge
+      login(data.user, data.token);
       onClose();
     } catch (err) {
       setError(err.message);
@@ -60,7 +60,7 @@ const Register = ({ onClose, onSwitchToLogin }) => {
             Already have an account? 
             <button 
               type="button" 
-              onClick={onSwitchToLogin} // Folosește prop-ul nou
+              onClick={onSwitchToLogin}
             >
               Login here
             </button>

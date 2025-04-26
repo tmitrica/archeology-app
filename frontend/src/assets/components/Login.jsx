@@ -20,7 +20,7 @@ const Login = ({ onClose, onSwitchToRegister }) => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Login failed');
   
-      login(data.user, data.token); // Transmite și token-ul
+      login(data.user, data.token);
       onClose();
     } catch (err) {
       setError(err.message);
@@ -61,7 +61,7 @@ const Login = ({ onClose, onSwitchToRegister }) => {
             Don't have an account? 
             <button 
               type="button" 
-              onClick={onSwitchToRegister} // Folosește prop-ul nou
+              onClick={onSwitchToRegister}
             >
               Register here
             </button>

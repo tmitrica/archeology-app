@@ -1,54 +1,97 @@
 import React, { useState } from 'react';
+import { useAuth } from '../../AuthContext';
 
-export default function AddArtifactForm({ onSubmit }) {
+const AddArtifactForm = ({ onClose, onAdd }) => {
   const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
   const [latitude, setLatitude] = useState('');
   const [longitude, setLongitude] = useState('');
+  const [description, setDescription] = useState('');
+  const [error, setError] = useState('');
+  const { user } = useAuth();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSubmit({ name, description, latitude, longitude });
-    setName('');
-    setDescription('');
-    setLatitude('');
-    setLongitude('');
+    try {
+      const response = await fetch('http://localhost:3001/api/artifacts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          name,
+          latitude: parseFloat(latitude),
+          longitude: parseFloat(longitude),
+          description
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message);
+      }
+
+      onAdd();
+      onClose();
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ position: 'absolute', top: 20, left: 20, backgroundColor: '#fff', padding: 10, borderRadius: 8 }}>
-      <h3>Adaugă Artefact</h3>
-      <input 
-        type="text" 
-        placeholder="Nume" 
-        value={name} 
-        onChange={(e) => setName(e.target.value)} 
-        required 
-      />
-      <input 
-        type="text" 
-        placeholder="Descriere" 
-        value={description} 
-        onChange={(e) => setDescription(e.target.value)} 
-        required 
-      />
-      <input 
-        type="number" 
-        placeholder="Latitudine" 
-        value={latitude} 
-        onChange={(e) => setLatitude(e.target.value)} 
-        required 
-        step="any"
-      />
-      <input 
-        type="number" 
-        placeholder="Longitudine" 
-        value={longitude} 
-        onChange={(e) => setLongitude(e.target.value)} 
-        required 
-        step="any"
-      />
-      <button type="submit">Salvează Artefact</button>
-    </form>
+    <div className="auth-overlay">
+      <div className="auth-container">
+        <form onSubmit={handleSubmit} className="auth-form">
+          <button type="button" className="close-button" onClick={onClose}>×</button>
+          <h2>Add a new artifact</h2>
+          {error && <p className="error-message">{error}</p>}
+
+          <div className="form-group">
+            <label>Name:</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Latitude:</label>
+            <input
+              type="number"
+              step="any"
+              value={latitude}
+              onChange={(e) => setLatitude(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Longitude:</label>
+            <input
+              type="number"
+              step="any"
+              value={longitude}
+              onChange={(e) => setLongitude(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Short description:</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              required
+            />
+          </div>
+
+          <button type="submit" className="auth-button">Add</button>
+        </form>
+      </div>
+    </div>
   );
-}
+};
+
+export default AddArtifactForm;
