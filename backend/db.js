@@ -31,50 +31,28 @@ function authenticateToken(req, res, next) {
   });
 }
 
-// 🔓 Login
+// 🔓 LOGIN
 app.post('/api/login', async (req, res) => {
-  const { username, password } = req.body;
-  const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
-  const user = result.rows[0];
-
-  if (!user) return res.status(400).json({ message: 'User not found' });
-  
-  const valid = await bcrypt.compare(password, user.password);
-  if (!valid) return res.status(401).json({ message: 'Wrong password' });
-
-  const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, SECRET);
-  res.json({ token, user: { id: user.id, username: user.username, role: user.role } });
-});
-
-// ✅ Toți pot vedea artefacte
-app.get('/api/artifacts', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM artifacts');
-    res.json(result.rows);
+    const { username, password } = req.body;
+    const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+    const user = result.rows[0];
+
+    if (!user) return res.status(400).json({ message: 'User not found' });
+    
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) return res.status(401).json({ message: 'Wrong password' });
+
+    const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, SECRET);
+    res.json({ token, user: { id: user.id, username: user.username, role: user.role } });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-// ➕ Adăugare artefact (doar cercetători/admini)
-app.post('/api/artifacts', authenticateToken, async (req, res) => {
-  if (req.user.role !== 'researcher' && req.user.role !== 'admin') {
-    return res.status(403).json({ message: 'Forbidden' });
-  }
 
-  const { name, latitude, longitude, description } = req.body;
-  try {
-    await pool.query(
-      'INSERT INTO artifacts (name, latitude, longitude, description) VALUES ($1, $2, $3, $4)',
-      [name, latitude, longitude, description]
-    );
-    res.status(201).json({ message: 'Artefact adăugat' });
-  } catch (err) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// 🚀 Ruta de înregistrare
+// 🆕 REGISTER
 app.post('/api/auth/register', async (req, res) => {
   const { username, password } = req.body;
   try {
@@ -84,7 +62,6 @@ app.post('/api/auth/register', async (req, res) => {
       [username, hashedPassword, 'researcher']
     );
     
-    // Generează token pentru noul utilizator
     const user = result.rows[0];
     const token = jwt.sign(
       { id: user.id, username: user.username, role: user.role },
@@ -102,37 +79,32 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
-app.post('/api/login', async (req, res) => {
+// Artefactele
+app.get('/api/artifacts', async (req, res) => {
   try {
-    const { username, password } = req.body;
-    const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
-    
-    if (result.rows.length === 0) {
-      return res.status(400).json({ message: 'User not found' });
-    }
-
-    const user = result.rows[0];
-    const valid = await bcrypt.compare(password, user.password);
-    
-    if (!valid) {
-      return res.status(401).json({ message: 'Wrong password' });
-    }
-
-    const token = jwt.sign(
-      { id: user.id, username: user.username, role: user.role },
-      SECRET,
-      { expiresIn: '1h' }
-    );
-    
-    res.json({ 
-      token,
-      user: { id: user.id, username: user.username, role: user.role }
-    });
-
+    const result = await pool.query('SELECT * FROM artifacts');
+    res.json(result.rows);
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 });
+
+app.post('/api/artifacts', authenticateToken, async (req, res) => {
+  if (req.user.role !== 'researcher' && req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Forbidden' });
+  }
+
+  const { name, latitude, longitude, description } = req.body;
+  try {
+    await pool.query(
+      'INSERT INTO artifacts (name, latitude, longitude, description) VALUES ($1, $2, $3, $4)',
+      [name, latitude, longitude, description]
+    );
+    res.status(201).json({ message: 'Artifact added' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 const PORT = 3001;
-app.listen(PORT, () => console.log(`Serverul ruleaza pe portul ${PORT}`));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

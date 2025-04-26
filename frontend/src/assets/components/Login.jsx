@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../AuthContext';
 import "../styles/Login.css";
 
-const Login = ({ onClose }) => {
+const Login = ({ onClose, onSwitchToRegister }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -11,7 +11,7 @@ const Login = ({ onClose }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch('http://localhost:3001/api/auth/login', {
+      const response = await fetch('http://localhost:3001/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -54,10 +54,17 @@ const Login = ({ onClose }) => {
               required
             />
           </div>
+
           
           <button type="submit" className="auth-button">Login</button>
           <p className="auth-link">
-            Don't have an account? <button type="button" onClick={() => { onClose(); /* Add logic to show register */ }}>Register here</button>
+            Don't have an account? 
+            <button 
+              type="button" 
+              onClick={onSwitchToRegister} // Folosește prop-ul nou
+            >
+              Register here
+            </button>
           </p>
         </form>
       </div>

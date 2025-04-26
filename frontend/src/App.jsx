@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { AuthProvider } from './AuthContext';
 import Globe from './assets/components/Globe';
@@ -12,21 +12,16 @@ function MainApp() {
   const { user, logout } = useAuth();
 
   return (
-    <div style={{ height: '100vh', width: '100vw', position: 'relative' }}>
+    <div style={{ height: '100vh', width: '100vw' }}>
       {/* Butoanele Login/Register */}
-      {!user ? (
-  <div className="auth-buttons">
-    <button onClick={() => setShowLogin(true)}>Login</button>
-    <button onClick={() => setShowRegister(true)}>Register</button>
-  </div>
-  ) : (
-    <div className="user-info">
-      <span>Welcome, {user.username}</span>
-      <button onClick={logout}>Logout</button>
-    </div>
-  )}
+      {!user && (
+        <div className="auth-buttons">
+          <button onClick={() => setShowLogin(true)}>Login</button>
+          <button onClick={() => setShowRegister(true)}>Register</button>
+        </div>
+      )}
 
-      {/* Informații utilizator logat */}
+      {/* Mesaj bun venit + Logout */}
       {user && (
         <div className="user-info">
           <span>Welcome, {user.username} ({user.role})</span>
@@ -34,11 +29,28 @@ function MainApp() {
         </div>
       )}
 
-      {/* Modale */}
-      {showLogin && <Login onClose={() => setShowLogin(false)} />}
-      {showRegister && <Register onClose={() => setShowRegister(false)} />}
+      {/* Modalele */}
+      {showLogin && (
+        <Login 
+          onClose={() => setShowLogin(false)}
+          onSwitchToRegister={() => {
+            setShowLogin(false);
+            setShowRegister(true);
+          }}
+        />
+      )}
+      
+      {showRegister && (
+        <Register 
+          onClose={() => setShowRegister(false)}
+          onSwitchToLogin={() => {
+            setShowRegister(false);
+            setShowLogin(true);
+          }}
+        />
+      )}
 
-      {/* Globul */}
+      {/* Componenta Globe */}
       <Globe />
     </div>
   );

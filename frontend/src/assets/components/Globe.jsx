@@ -111,9 +111,9 @@ return (
         <p>{selectedArtifact.description}</p>
       </div>
     )}
-    {user?.role === 'researcher' && (
+    {/* {user?.role === 'researcher' && (
       <AddArtifactForm onSubmit={handleAddArtifact} />
-    )}
+    )} */}
   </div>
   );  
 }

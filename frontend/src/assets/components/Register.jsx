@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { useAuth } from '../../AuthContext';
 import "../styles/Login.css";
 
-const Register = ({ onClose }) => {
+const Register = ({ onClose, onSwitchToLogin }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const { login } = useAuth(); // 💥 adăugat!
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -15,12 +16,11 @@ const Register = ({ onClose }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
-  
+
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Registration failed');
-      
-      // Autentificare automată după înregistrare
-      login(data.user, data.token);
+
+      login(data.user, data.token); // Acum merge
       onClose();
     } catch (err) {
       setError(err.message);
@@ -34,7 +34,7 @@ const Register = ({ onClose }) => {
           <button type="button" className="close-button" onClick={onClose}>×</button>
           <h2>Archaeology Platform Registration</h2>
           {error && <p className="error-message">{error}</p>}
-          
+
           <div className="form-group">
             <label>Username:</label>
             <input
@@ -44,7 +44,7 @@ const Register = ({ onClose }) => {
               required
             />
           </div>
-          
+
           <div className="form-group">
             <label>Password:</label>
             <input
@@ -54,10 +54,16 @@ const Register = ({ onClose }) => {
               required
             />
           </div>
-          
+
           <button type="submit" className="auth-button">Register</button>
           <p className="auth-link">
-            Already have an account? <button type="button" onClick={() => { onClose(); /* Add logic to show login */ }}>Login here</button>
+            Already have an account? 
+            <button 
+              type="button" 
+              onClick={onSwitchToLogin} // Folosește prop-ul nou
+            >
+              Login here
+            </button>
           </p>
         </form>
       </div>

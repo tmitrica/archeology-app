@@ -5,15 +5,16 @@ const AuthContext = createContext();
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
 
+  // Verifică localStorage la mount
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    const storedToken = localStorage.getItem('token');
+    const storedUser = localStorage.getItem("user");
+    const storedToken = localStorage.getItem("token");
     
     if (storedUser && storedToken) {
       try {
         setUser(JSON.parse(storedUser));
       } catch (err) {
-        console.error("Eroare la parsarea datelor:", err);
+        console.error("Eroare parsare user:", err);
         logout();
       }
     }
@@ -21,9 +22,10 @@ export function AuthProvider({ children }) {
 
   const login = (userData, token) => {
     setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
-    localStorage.setItem('token', token);
+    localStorage.setItem("user", JSON.stringify(userData));
+    localStorage.setItem("token", token);
   };
+
 
   const logout = () => {
     setUser(null);
