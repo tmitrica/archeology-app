@@ -5,6 +5,7 @@ import Globe from './assets/components/Globe';
 import Login from './assets/components/Login';
 import Register from './assets/components/Register';
 import AddArtifactForm from './assets/components/AddArtifactForm';
+import ArtifactList from './assets/components/ArtifactList';
 import './App.css';
 
 function MainApp() {
@@ -80,6 +81,7 @@ export default function App() {
   return (
     <AuthProvider>
       <MainApp />
+      <ArtifactList onUpdate={() => setRefreshKey(prev => prev + 1)} />
     </AuthProvider>
   );
 }

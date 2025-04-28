@@ -106,5 +106,43 @@ app.post('/api/artifacts', authenticateToken, async (req, res) => {
   }
 });
 
+//delete artifact
+app.delete('/api/artifacts/:id', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Forbidden' });
+  }
+
+  try {
+    await pool.query('DELETE FROM artifacts WHERE id = $1', [id]);
+    res.json({ message: 'Artifact deleted successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// PUT artifact (update)
+app.put('/api/artifacts/:id', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const { name, latitude, longitude, description } = req.body;
+  
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Forbidden' });
+  }
+
+  try {
+    await pool.query(
+      'UPDATE artifacts SET name = $1, latitude = $2, longitude = $3, description = $4 WHERE id = $5',
+      [name, latitude, longitude, description, id]
+    );
+    res.json({ message: 'Artifact updated successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 const PORT = 3001;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
