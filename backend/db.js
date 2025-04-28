@@ -18,6 +18,20 @@ const pool = new Pool({
 
 const SECRET = 'super_secret_key';
 
+const createTables = async () => {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS messages (
+      id SERIAL PRIMARY KEY,
+      artifact_id INTEGER REFERENCES artifacts(id) ON DELETE CASCADE,
+      user_id INTEGER REFERENCES users(id),
+      content TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+};
+
+createTables();
+
 // Middleware de autentificare
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
@@ -31,7 +45,7 @@ function authenticateToken(req, res, next) {
   });
 }
 
-// 🔓 LOGIN
+// LOGIN
 app.post('/api/login', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -52,7 +66,7 @@ app.post('/api/login', async (req, res) => {
 });
 
 
-// 🆕 REGISTER
+// REGISTER
 app.post('/api/auth/register', async (req, res) => {
   const { username, password } = req.body;
   try {
@@ -140,6 +154,43 @@ app.put('/api/artifacts/:id', authenticateToken, async (req, res) => {
     res.json({ message: 'Artifact updated successfully' });
   } catch (err) {
     console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Rute pentru mesaje
+app.get('/api/artifacts/:id/messages', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      `SELECT m.*, u.username 
+       FROM messages m
+       JOIN users u ON m.user_id = u.id
+       WHERE artifact_id = $1
+       ORDER BY created_at ASC`,
+      [id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.post('/api/artifacts/:id/messages', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { content } = req.body;
+    const userId = req.user.id;
+
+    const result = await pool.query(
+      `INSERT INTO messages (artifact_id, user_id, content)
+       VALUES ($1, $2, $3)
+       RETURNING *`,
+      [id, userId, content]
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
 });

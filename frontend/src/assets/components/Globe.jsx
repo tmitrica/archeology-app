@@ -3,6 +3,7 @@ import { Canvas, useLoader } from '@react-three/fiber';
 import { OrbitControls, Html } from '@react-three/drei';
 import { TextureLoader } from 'three';
 import { useAuth } from '../../AuthContext';
+import ArtifactChat from './ArtifactChat';
 
 function Sphere() {
   const meshRef = useRef();
@@ -16,8 +17,26 @@ function Sphere() {
   );
 }
 
-function Marker({ lat, lng, label, description, onClick }) {
+function Marker({ artifact, onClick }) {
   const [hovered, setHovered] = useState(false);
+  if (
+    !artifact ||
+    typeof artifact.latitude === 'undefined' ||
+    typeof artifact.longitude === 'undefined'
+  ) {
+    console.warn("Artefact invalid:", artifact); // <<< Adăugat
+    return null;
+  }
+
+  // Conversie sigură la float
+  const lat = parseFloat(artifact.latitude);
+  const lng = parseFloat(artifact.longitude);
+
+  if (isNaN(lat) || isNaN(lng)) {
+    console.error("Coordonate invalide:", artifact);
+    return null;
+  }
+
   const phi = (90 - lat) * (Math.PI / 180);
   const theta = (360 - lng) * (Math.PI / 180);
   const radius = 2.02;
@@ -29,7 +48,7 @@ function Marker({ lat, lng, label, description, onClick }) {
   return (
     <mesh 
       position={[x, y, z]}
-      onClick={() => onClick({ label, description })}
+      onClick={() => onClick(artifact)}
       onPointerOver={() => setHovered(true)}
       onPointerOut={() => setHovered(false)}
     >
@@ -37,7 +56,7 @@ function Marker({ lat, lng, label, description, onClick }) {
       <meshBasicMaterial color={hovered ? "#ff5555" : "#ff0000"} />
       {hovered && (
         <Html distanceFactor={15}>
-          <div className="marker-label">{label}</div>
+          <div className="marker-label">{artifact.name}</div>
         </Html>
       )}
     </mesh>
@@ -76,19 +95,18 @@ return (
       {markers.map((marker) => (
         <Marker
           key={marker.id}
-          lat={parseFloat(marker.latitude)}
-          lng={parseFloat(marker.longitude)}
-          label={marker.name}
-          description={marker.description}
+          artifact={marker}
           onClick={setSelectedArtifact}
         />
       ))}
     </Canvas>
     
     {selectedArtifact && (
-        <div className="artifact-popup" onClick={() => setSelectedArtifact(null)}>
-          <h3>{selectedArtifact.label}</h3>
-          <p>{selectedArtifact.description}</p>
+        <div className="artifact-chat-modal">
+          <ArtifactChat 
+            artifactId={selectedArtifact.id} 
+            onClose={() => setSelectedArtifact(null)}
+          />
         </div>
       )}
   </div>
