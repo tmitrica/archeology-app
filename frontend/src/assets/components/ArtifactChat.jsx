@@ -3,43 +3,50 @@ import { useAuth } from '../../AuthContext';
 import "../styles/ArtifactChat.css";
 
 const ArtifactChat = ({ artifactId, onClose }) => {
-  const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
-  const { user } = useAuth();
+  // Chat state management
+  const [messages, setMessages] = useState([]); // Stores message history
+  const [newMessage, setNewMessage] = useState(''); // Controls input field
+  const { user } = useAuth(); // Authentication context for user status
 
+  // Real-time message polling mechanism
   useEffect(() => {
-    fetchMessages();
-    const interval = setInterval(fetchMessages, 2000);
-    return () => clearInterval(interval);
-  }, [artifactId]);
+    const fetchAndSchedule = async () => {
+      await fetchMessages(); // Initial fetch
+      const interval = setInterval(fetchMessages, 2000); // Refresh every 2 seconds
+      return () => clearInterval(interval); // Cleanup on unmount/artifactId change
+    };
+    fetchAndSchedule();
+  }, [artifactId]); // Re-initializes when artifact changes
 
+  // Message retrieval logic
   const fetchMessages = async () => {
     try {
       const response = await fetch(`http://localhost:3001/api/artifacts/${artifactId}/messages`);
       const data = await response.json();
-      setMessages(data);
+      setMessages(data); // Update message history
     } catch (error) {
       console.error('Error fetching messages:', error);
     }
   };
 
+  // Message submission handler
   const sendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim()) return; // Prevent empty messages
 
     try {
       const response = await fetch(`http://localhost:3001/api/artifacts/${artifactId}/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('token')}` // JWT auth
         },
         body: JSON.stringify({ content: newMessage })
       });
 
       if (response.ok) {
-        setNewMessage('');
-        fetchMessages();
+        setNewMessage(''); // Clear input field
+        fetchMessages(); // Immediate refresh after sending
       }
     } catch (error) {
       console.error('Error sending message:', error);
@@ -53,25 +60,32 @@ const ArtifactChat = ({ artifactId, onClose }) => {
         <button onClick={onClose} className="close-btn">&times;</button>
       </div>
       
+      {/* Messages display area with scroll */}
       <div className="messages-list">
         {messages.map(message => (
-          <div key={message.id} className={`message ${message.user_id === user?.id ? 'own' : ''}`}>
+          <div 
+            key={message.id} 
+            className={`message ${message.user_id === user?.id ? 'own' : ''}`} // Highlight user's messages
+          >
             <div className="message-header">
-              <span className="username">{message.username}</span>
-              <span className="time">{new Date(message.created_at).toLocaleTimeString()}</span>
+              <span className="username">{message.username}</span> {/* Sender identity */}
+              <span className="time">
+                {new Date(message.created_at).toLocaleTimeString()} {/* Formatted timestamp */}
+              </span>
             </div>
             <div className="message-content">{message.content}</div>
           </div>
         ))}
       </div>
 
+      {/* Message input with auth-based controls */}
       <form onSubmit={sendMessage} className="message-form">
         <input
           type="text"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           placeholder="Type your message..."
-          disabled={!user}
+          disabled={!user} // Disable for unauthorized users
         />
         <button type="submit" disabled={!user}>Send</button>
       </form>
