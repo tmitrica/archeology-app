@@ -8,6 +8,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// PostgreSQL connection configuration
 const pool = new Pool({
   user: 'postgres',
   host: 'localhost',
@@ -18,6 +19,7 @@ const pool = new Pool({
 
 const SECRET = 'super_secret_key';
 
+// Initialize database tables with necessary relationships
 const createTables = async () => {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS messages (
@@ -32,7 +34,7 @@ const createTables = async () => {
 
 createTables();
 
-// Middleware de autentificare
+// Authentication middleware for JWT verification
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -45,7 +47,7 @@ function authenticateToken(req, res, next) {
   });
 }
 
-// LOGIN
+// User authentication endpoint with password validation
 app.post('/api/login', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -54,9 +56,11 @@ app.post('/api/login', async (req, res) => {
 
     if (!user) return res.status(400).json({ message: 'User not found' });
     
+    // Compare hashed password with input using bcrypt
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return res.status(401).json({ message: 'Wrong password' });
 
+    // Generate JWT token with user metadata
     const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, SECRET);
     res.json({ token, user: { id: user.id, username: user.username, role: user.role } });
   } catch (err) {
@@ -65,11 +69,11 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-
-// REGISTER
+// User registration with password hashing and duplicate handling
 app.post('/api/auth/register', async (req, res) => {
   const { username, password } = req.body;
   try {
+    // Hash password with bcrypt before storage
     const hashedPassword = await bcrypt.hash(password, 10);
     const result = await pool.query(
       'INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING id, username, role',
@@ -85,6 +89,7 @@ app.post('/api/auth/register', async (req, res) => {
     
     res.status(201).json({ token, user });
   } catch (err) {
+    // Handle unique constraint violation for username
     if (err.code === '23505') {
       res.status(400).json({ message: 'Username already exists' });
     } else {
@@ -93,7 +98,7 @@ app.post('/api/auth/register', async (req, res) => {
   }
 });
 
-// Artefactele
+// Artifact management endpoints with role-based access control
 app.get('/api/artifacts', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM artifacts');
@@ -104,6 +109,7 @@ app.get('/api/artifacts', async (req, res) => {
 });
 
 app.post('/api/artifacts', authenticateToken, async (req, res) => {
+  // Verify user has appropriate privileges
   if (req.user.role !== 'researcher' && req.user.role !== 'admin') {
     return res.status(403).json({ message: 'Forbidden' });
   }
@@ -120,7 +126,7 @@ app.post('/api/artifacts', authenticateToken, async (req, res) => {
   }
 });
 
-//delete artifact
+// Artifact deletion with admin-only restriction
 app.delete('/api/artifacts/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
   
@@ -137,7 +143,7 @@ app.delete('/api/artifacts/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// PUT artifact (update)
+// Artifact update endpoint with authorization check
 app.put('/api/artifacts/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
   const { name, latitude, longitude, description } = req.body;
@@ -158,7 +164,7 @@ app.put('/api/artifacts/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Rute pentru mesaje
+// Message handling with user context
 app.get('/api/artifacts/:id/messages', async (req, res) => {
   try {
     const { id } = req.params;
@@ -176,6 +182,7 @@ app.get('/api/artifacts/:id/messages', async (req, res) => {
   }
 });
 
+// Message creation with authenticated user association
 app.post('/api/artifacts/:id/messages', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -196,4 +203,10 @@ app.post('/api/artifacts/:id/messages', authenticateToken, async (req, res) => {
 });
 
 const PORT = 3001;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+// Conditional server start for test environment handling
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}
+
+module.exports = app;
